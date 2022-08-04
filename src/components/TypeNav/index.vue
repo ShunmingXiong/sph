@@ -1,64 +1,67 @@
 <template>
-  <!-- 商品分类导航 -->
   <div class="type-nav">
     <div class="container">
-      <!-- 事件委派 -->
-      <div @mouseleave="leaveShow" @mouseenter="enterShow">
-        <h2 class="all">全部商品分类</h2>
-        <transition name='sort'>
+      <!-- 事件的委派 -->
+      <div @mouseleave="leaveHandler" @click="goSearch">
+        <h2 class="all" @mouseenter="changeShow">全部商品分类</h2>
+        <!--商品分类的地方:虽然刚开始的时候商品分类结构在底部,调整到当前位置，但是页面结构没有太大的变化,因为老师们已经把样式搞定了-->
+        <transition name="sort">
           <div class="sort" v-show="show">
-          <div class="all-sort-list2" @click="goSearch">
-          <!-- 事件委派 -->
-            <div
-              class="item bo"
-              v-for="(c1, index) in categoryList"
-              :key="c1.categoryId"
-              :class="{ cur: currentIndex == index }"
-            >
-              <h3 @mouseenter="changeIndex(index)">
-                <a
-                  :data-categoryName="c1.categoryName"
-                  :data-category1id="c1.categoryId"
-                  >{{ c1.categoryName }}</a
-                >
-                <!-- 声明式导航 -->
-                <!-- <router-link to="/search">{{c1.categoryName}}</router-link> -->
-              </h3>
-              <!-- 二三级分类 -->
+            <div class="all-sort-list2">
+              <!--一级分类地盘-->
               <div
-                class="item-list clearfix"
-                :style="{ display: currentIndex == index ? 'block' : 'none' }"
+                class="item"
+                v-for="(c1, index) in category"
+                :key="c1.categoryId"
               >
-                <div
-                  class="subitem"
-                  v-for="c2 in c1.categoryChild"
-                  :key="c2.categoryId"
+                <h3
+                  @mouseenter="enterHandler(index)"
+                  :class="{ active: currentIndex == index }"
                 >
-                  <dl class="fore">
-                    <dt>
-                      <a
-                        :data-categoryName="c2.categoryName"
-                        :data-category2id="c2.categoryId"
-                        >{{ c2.categoryName }}</a
-                      >
-                      <!-- <router-link to="/search">{{c2.categoryName}}</router-link> -->
-                    </dt>
-                    <dd>
-                      <em v-for="c3 in c2.categoryChild" :key="c3.categoryId">
+                  <a
+                    :data-categoryName="c1.categoryName"
+                    :data-category1Id="c1.categoryId"
+                    >{{ c1.categoryName }}</a
+                  >
+                </h3>
+                <!-- 通过JS实现动态行内样式，进行二级、三级分类的显示与隐藏(display:none|block切换的) -->
+                <div
+                  class="item-list clearfix"
+                  :style="{ display: currentIndex == index ? 'block' : 'none' }"
+                >
+                  <!--二级分类-->
+                  <div
+                    class="subitem"
+                    v-for="(c2, index) in c1.categoryChild"
+                    :key="c2.categoryId"
+                  >
+                    <dl class="fore">
+                      <dt>
                         <a
-                          :data-categoryName="c3.categoryName"
-                          :data-category3id="c3.categoryId"
-                          >{{ c3.categoryName }}</a
+                          :data-categoryName="c2.categoryName"
+                          :data-category2Id="c2.categoryId"
+                          >{{ c2.categoryName }}</a
                         >
-                        <!-- <router-link to="/search">{{c3.categoryName}}</router-link> -->
-                      </em>
-                    </dd>
-                  </dl>
+                      </dt>
+                      <dd>
+                        <!--三级分类-->
+                        <em
+                          v-for="(c3, index) in c2.categoryChild"
+                          :key="c3.categoryId"
+                        >
+                          <a
+                            :data-categoryName="c3.categoryName"
+                            :data-category3Id="c3.categoryId"
+                            >{{ c3.categoryName }}</a
+                          >
+                        </em>
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
         </transition>
       </div>
       <nav class="nav">
@@ -76,83 +79,108 @@
 </template>
 
 <script>
+//利用辅助函数获取仓库state数据--->mapState
 import { mapState } from "vuex";
+//mapState辅助函数执行:数组、对象
+//底下的这种写法:是将lodash全部API引入,将来项目打包的时候，体积会大一些
+// import _ from "lodash";
+//引入手段:按需引入
 import throttle from "lodash/throttle";
 export default {
   name: "TypeNav",
   data() {
     return {
+      //利用响应式属性,将来存储用户鼠标进入哪一个一级分类的索引值
       currentIndex: -1,
-      show: true,
+      show: true, //默认显示
     };
   },
-  //当组件挂载完毕：可以向服务器发请求
+  methods: {
+    //鼠标进入的方法
+    enterHandler: throttle(function (index) {
+      //修改响应式数据
+      this.currentIndex = index;
+      //鼠标进入事件,假如用户的行为过快,会导致项目业务丢失【里面业务有很多，可能出现卡顿现象】。
+      //一句话：用户行为过快,浏览器反应不过来,导致业务丢失!!!!
+      //函数的防抖与节流技术
+      // console.log("处理业务" + index);
+    }, 10),
+    //鼠标移出事件
+    leaveHandler() {
+      //鼠标移出高亮的效果消失
+      this.currentIndex = -1;
+      //隐藏商品分类
+      //鼠标离开:在search路由下,在修改数据
+      if (this.$route.path != "/home") {
+        this.show = false;
+      }
+    },
+    //全部商品分类鼠标进入
+    changeShow() {
+      //鼠标进入:在search路由下,在修改数据
+      if (this.$route.path != "/home") {
+        this.show = true;
+      }
+    },
+    //精益求精
+    //将全部的子节点的事件委派给父节点->事件回调就一个
+    goSearch(event) {
+      //第一个问题:div父节点子元素太多【h3、h2、em、dt、dd、dl...a】？你怎么知道你点击的一定是a
+      //第二个问题:要区分一级分类、二级分类、三级分类的a标签【category1Id|category2Id|category2Id】
+      let targetNode = event.target;
+      //获取触发事件节点的自定义属性【a:data-categoryName】
+      let { categoryname, category1id, category2id, category3id } =
+        targetNode.dataset;
+      //判断点击的是a【不管是1|2|3】
+      if (categoryname) {
+        //点击只要是a,就是往search模块跳转
+        var locations = {
+          name: "search",
+          query: { categoryName: categoryname },
+        };
+        //一级分类的a
+        if (category1id) {
+          locations.query.category1Id = category1id;
+        } else if (category2id) {
+          //二级分类的a
+          locations.query.category2Id = category2id;
+        } else {
+          //三级分类的a
+          locations.query.category3Id = category3id;
+        }
+        //点击商品分类按钮的时候,如果路径当中携带params参数,需要合并携带给search模块
+        if (this.$route.params.keyword) {
+          locations.params = this.$route.params;
+        }
+        //目前商品分类这里携带参数只有query参数
+        this.$router.push(locations);
+      }
+    },
+  },
+  //不管是Home|Search利用的都是全局组件TypeNav,TypeNav在Home路由与Search路由下状态不一样的。
+  //VC身上有一个很值钱的东西$route,这玩意可以让你知道当前TypeNav处于那个路由下
   mounted() {
-    
-    //当Home组件挂载完毕,并跳转到search组件 隐藏typenav
+    //派发action
+    //路由切换的时候,路由组件会被销毁重建【子组件不也是】
     if (this.$route.path != "/home") {
       this.show = false;
     }
   },
+  //计算属性
   computed: {
+    //数组的写法:目前书写的是大仓库state的K  ...mapState(['home'])
+
     ...mapState({
-      //右侧需要的是一个函数，当使用这个计算属性的时候，右侧函数会立即执行一次
-      categoryList: (state) => state.home.categoryList,
+      //对象写法,对象的K,给VC新增的属性
+      //新增的属性erha,右侧属性值为箭头函数返回的结果。作为新增属性的属性值
+      //箭头函数执行，注入一个参数state->大仓库【包含小仓库】
+      category: (state) => state.home.category, //对象简写形式
     }),
-  },
-  methods: {
-    //改变index  节流
-    //不要用箭头函数
-    changeIndex: throttle(function (index) {
-      //鼠标移上某一级分类的index
-      this.currentIndex = index;
-    }),
-    //移出一级分类
-    leaveShow() {
-      this.currentIndex = -1;
-      if (this.$route.path != "/home") {
-        
-        this.show = false;
-      }
-    },
-    goSearch(event) {
-      //事件委派 + 编程式导航
-      //事件委派:点击传参(一二三级),具体的a链接
-      //事件委派:是把全部子节点{h2,div,dl,em....}的事件委派给父元素
-      //确定点击的是a标签:加上属性:data-categoryName
-      //:event  获取当前触发事件的节点
-      // this.$router.push('/search')
-      let { categoryname, category1id, category2id, category3id } =
-        event.target.dataset;
-      if (categoryname) {
-        //整理路由跳转参数
-        let location = { name: "search" };
-        let query = { categoryName: categoryname };
-        //确定一二三级路由:data-category1id data-category2id data-category3id
-        if (category1id) {
-          query.category1id = category1id;
-        } else if (category2id) {
-          query.category2id = category2id;
-        } else {
-          query.category3id = category3id;
-        }
-        //合并参数
-        if(this.$route.params){
-          location.params = this.$route.params;
-          location.query = query;
-          this.$router.push(location);
-        }
-      }
-    },
-    //当鼠标移入,让商品分类列表显示
-    enterShow() {
-      this.show = true;
-    },
   },
 };
 </script>
 
-<style lang="less" scoped>
+<style scoped lang="less">
 .type-nav {
   border-bottom: 2px solid #e1251b;
 
@@ -206,10 +234,14 @@ export default {
             a {
               color: #333;
             }
+
+            &.active {
+              background: yellowgreen;
+            }
           }
 
           .item-list {
-            // display: none;
+            display: none;
             position: absolute;
             width: 734px;
             min-height: 460px;
@@ -261,28 +293,29 @@ export default {
               }
             }
           }
-
-          //   &:hover {
-          //     .item-list {
-          //       display: block;
-          //     }
-          //   }
-        }
-        .cur {
-          background-color: skyblue;
+          /*温馨提示:豪哥不想利用样式控制二级、三级分类显示与隐藏,下面的代码进行注释*/
+          /* &:hover {
+            .item-list {
+              display: block;
+            }
+          }
+          */
         }
       }
     }
 
-    .sort-enter{
-      height:0px;
+    /*过渡动画:商品分类 进入阶段*/
+    .sort-enter {
+      height: 0px;
     }
-    .sort-enter-to{
+
+    .sort-enter-active {
+      transition: all 0.3s;
+    }
+    .sort-enter-to {
       height: 461px;
-    }
-    .sort-enter-active{
-      transition: all .5s linear;
     }
   }
 }
 </style>
+

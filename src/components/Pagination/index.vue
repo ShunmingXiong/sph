@@ -1,44 +1,17 @@
 <template>
   <div class="pagination">
-    <!-- 上 -->
-    <button :disabled="pageNo == 1" @click="$emit('getPageNo', pageNo - 1)">
-      上一页
-    </button>
-    <button
-      v-if="startNumAndEndNum.start > 1"
-      @click="$emit('getPageNo', 1)"
-      :class="{ active: pageNo == 1 }"
-    >
-      1
-    </button>
-    <button v-if="startNumAndEndNum.start > 2">···</button>
-    <!-- 中间部分 -->
-    <template v-for="(page, index) in startNumAndEndNum.end">
-      <button
-        :key="index"
-        v-if="page >= startNumAndEndNum.start"
-        @click="$emit('getPageNo', page)"
-        :class="{ active: pageNo == page }"
-      >
-        {{ page }}
-      </button>
-    </template>
+    <h1>{{ startAndEnd }}</h1>
+    <button @click="$emit('currentPage',pageNo - 1)" :disabled="pageNo==1">上一页</button>
+    <button v-if="startAndEnd.start > 1" @click="$emit('currentPage',1)">1</button>
+    <button v-if="startAndEnd.start > 2">.....</button>
 
-    <!-- 下 -->
-    <button v-if="startNumAndEndNum.end < totalPage - 1">···</button>
-    <button
-      v-if="startNumAndEndNum.end < totalPage"
-      @click="$emit('getPageNo', totalPage)"
-      :class="{ active: pageNo == totalPage }"
-    >
-      {{ totalPage }}
-    </button>
-    <button
-      :disabled="pageNo == totalPage"
-      @click="$emit('getPageNo', pageNo + 1)"
-    >
-      下一页
-    </button>
+    <!-- 中间连续页码的地方:v-for、数组、对象、数字、字符串 -->
+    <button v-for="page in startAndEnd.end" :key="page" v-if="page >= startAndEnd.start" @click="$emit('currentPage',page)" :class="{active:pageNo==page}">{{ page }}</button>
+
+    <button v-if="startAndEnd.end < totalPage - 1 ">......</button>
+    <button v-if="startAndEnd.end < totalPage" @click="$emit('currentPage',totalPage)">{{ totalPage }}</button>
+
+    <button  @click="$emit('currentPage',pageNo + 1)" :disabled="pageNo==totalPage">下一页</button>
 
     <button style="margin-left: 30px">共 {{ total }} 条</button>
   </div>
@@ -47,46 +20,40 @@
 <script>
 export default {
   name: "Pagination",
-  props: ["pageNo", "pageSize", "total", "continues"],
+  props: ["total", "pageSize", "pageNo", "pagerCount"],
   computed: {
-    //总共多少页
+    //分页器一共多少页【总条数/每页展示条数】
     totalPage() {
-      //向上取证
+      //向上取整数
       return Math.ceil(this.total / this.pageSize);
     },
-    //计算出连续的页码的起始数字与结束数字[连续页码的数字:至少是5]
-    startNumAndEndNum() {
-      const { continues, pageNo, totalPage } = this;
-      //先定义两个变量存储起始数字与结束数字
+    //底下的代码是整个分页器最重要的地方[算出连续五个数字、开头、结尾]
+    startAndEnd() {
+      //算出连续页码:开始与结束这两个数字
       let start = 0,
         end = 0;
-      //连续页码数字5【就是至少五页】，如果出现不正常的现象【就是不够五页】
-      //不正常现象【总页数没有连续页码多】
-      if (continues > totalPage) {
+      const { totalPage, pagerCount, pageNo } = this;
+      //特殊情况:总共页数小于连续页码数
+      if (totalPage < pagerCount) {
         start = 1;
         end = totalPage;
       } else {
-        //正常现象【连续页码5，但是你的总页数一定是大于5的】
-        //起始数字
-        start = pageNo - parseInt(continues / 2);
-        //结束数字
-        end = pageNo + parseInt(continues / 2);
-        //把出现不正常的现象【start数字出现0|负数】纠正
+        //正常情况：分页器总页数大于连续页码数
+        start = pageNo - parseInt(pagerCount / 2);
+        end = pageNo + parseInt(pagerCount / 2);
+        //约束start|end在合理范围之内
+        //约束头部
         if (start < 1) {
-          // -1 0 1 2 3
           start = 1;
-          end = continues;
+          end = pagerCount;
         }
-        //把出现不正常的现象[end数字大于总页码]纠正
+        //约束尾部
         if (end > totalPage) {
           end = totalPage;
-          start = totalPage - continues + 1;
+          start = totalPage - pagerCount + 1;
         }
       }
       return { start, end };
-    },
-    renderStartNumAndEndNum() {
-      //(page, index) in startNumAndEndNum.end
     },
   },
 };
@@ -94,7 +61,6 @@ export default {
 
 <style lang="less" scoped>
 .pagination {
-  text-align: center;
   button {
     margin: 0 5px;
     background-color: #f4f4f5;
@@ -124,8 +90,5 @@ export default {
       color: #fff;
     }
   }
-}
-.active {
-  background: skyblue;
 }
 </style>
